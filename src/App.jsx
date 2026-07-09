@@ -21,8 +21,6 @@ const mockSurahData = {
   ]
 };
 
-function App() {
+export default function App() {
   return <QuranDisplay surahData={mockSurahData} nextSurahData={null} />;
 }
-
-export default App;
