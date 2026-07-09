@@ -1,1 +1,18 @@
-index.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'IndoPakQuran';
+  src: url('/fonts/IndoPak.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  background-color: black;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevents scrollbars in stand mode */
+}
