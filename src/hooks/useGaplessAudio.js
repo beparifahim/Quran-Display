@@ -1,37 +1,40 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-export function useWakeLock(isPlaying) {
-  const wakeLockRef = useRef(null);
+export function useGaplessAudio(currentSurah, nextSurah, onTimeUpdateCallback) {
+  const [activePlayer, setActivePlayer] = useState(0);
+  const audioRef0 = useRef(null);
+  const audioRef1 = useRef(null);
+
+  const getActiveAudio = () => activePlayer === 0 ? audioRef0.current : audioRef1.current;
+  const getStandbyAudio = () => activePlayer === 0 ? audioRef1.current : audioRef0.current;
 
   useEffect(() => {
-    const requestWakeLock = async () => {
-      if ('wakeLock' in navigator) {
-        try {
-          wakeLockRef.current = await navigator.wakeLock.request('screen');
-        } catch (err) {
-          console.error(`Wake Lock failed: ${err.message}`);
-        }
+    const standbyAudio = getStandbyAudio();
+    if (nextSurah && standbyAudio) {
+      standbyAudio.src = nextSurah.audio_source;
+      standbyAudio.load(); 
+    }
+  }, [nextSurah, activePlayer]);
+
+  const internalTimeUpdate = () => {
+    const activeAudio = getActiveAudio();
+    if (!activeAudio) return;
+
+    const time = activeAudio.currentTime;
+    const duration = activeAudio.duration;
+
+    onTimeUpdateCallback(time);
+
+    if (duration && time >= duration - 0.2) {
+      const standbyAudio = getStandbyAudio();
+      if (standbyAudio && standbyAudio.readyState >= 3) {
+        standbyAudio.play();
+        activeAudio.pause();
+        activeAudio.currentTime = 0;
+        setActivePlayer(prev => prev === 0 ? 1 : 0);
       }
-    };
+    }
+  };
 
-    const releaseWakeLock = async () => {
-      if (wakeLockRef.current !== null) {
-        await wakeLockRef.current.release();
-        wakeLockRef.current = null;
-      }
-    };
-
-    if (isPlaying) requestWakeLock();
-    else releaseWakeLock();
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isPlaying) requestWakeLock();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      releaseWakeLock();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isPlaying]);
+  return { activePlayer, audioRef0, audioRef1, getActiveAudio, internalTimeUpdate };
 }
